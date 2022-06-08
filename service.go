@@ -1,4 +1,4 @@
-package easymotion
+package manage
 
 import (
 	"errors"
