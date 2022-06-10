@@ -3,7 +3,6 @@ package manage
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 )
 
@@ -75,32 +74,22 @@ func GetServiceID(i interface{}) string {
 
 // Starting all services
 func (s *ServiceInfo) Start() error {
-	var result error
-
 	for _, v := range serviceMap {
 		if result := v.Intstance.Start(); result != nil {
-			log.Printf("couldn't start service %s due to: %s", v.ID, result.Error())
+			return fmt.Errorf("couldn't start service %s due to: %s", v.ID, result.Error())
 		}
 	}
 
-	if result == nil {
-		log.Println("All services has been started")
-	}
-
-	return result
+	return nil
 }
 
 // Stopping all services
 func (s *ServiceInfo) Stop() error {
-	var result error
-
-	log.Println("Stopping all services...")
-
 	for _, v := range serviceMap {
 		if result := v.Intstance.Stop(); result != nil {
-			log.Printf("couldn't start service %s due to: %s", v.ID, result.Error())
+			return fmt.Errorf("couldn't start service %s due to: %s", v.ID, result.Error())
 		}
 	}
 
-	return result
+	return nil
 }
