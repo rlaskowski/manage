@@ -1,4 +1,4 @@
-package manage
+package immudb
 
 import (
 	"context"
