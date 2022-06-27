@@ -98,6 +98,25 @@ func NewImmuDB(engine *sql.Engine) *ImmuDB {
 	return &ImmuDB{engine}
 }
 
+// Starts a transaction
+func (im *ImmuDB) Begin() (*Tx, error) {
+	return im.BeginTx(context.Background())
+}
+
+// Starts a transaction
+func (im *ImmuDB) BeginTx(ctx context.Context) (*Tx, error) {
+	tx, _, err := im.engine.Exec("BEGIN TRANSACTION;", nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Tx{
+		immudb: im,
+		tx:     tx,
+		ctx:    ctx,
+	}, nil
+}
+
 // Selecting data by params
 func (im *ImmuDB) Query(sql string, params map[string]interface{}) (*ImmuDBRows, error) {
 	return im.QueryContext(context.Background(), sql, params)
@@ -105,7 +124,11 @@ func (im *ImmuDB) Query(sql string, params map[string]interface{}) (*ImmuDBRows,
 
 // Selecting data by params with context
 func (im *ImmuDB) QueryContext(ctx context.Context, sql string, params map[string]interface{}) (*ImmuDBRows, error) {
-	rowr, err := im.engine.Query(sql, params, nil)
+	return im.query(ctx, sql, params, nil)
+}
+
+func (im *ImmuDB) query(ctx context.Context, sql string, params map[string]interface{}, tx *sql.SQLTx) (*ImmuDBRows, error) {
+	rowr, err := im.engine.Query(sql, params, tx)
 
 	if err != nil {
 		return nil, err
@@ -122,4 +145,55 @@ func (im *ImmuDB) QueryContext(ctx context.Context, sql string, params map[strin
 	}
 
 	return rows, nil
+}
+
+type Tx struct {
+	immudb *ImmuDB
+	tx     *sql.SQLTx
+	ctx    context.Context
+}
+
+func (tx *Tx) Exec(sql string, params map[string]interface{}) error {
+	return tx.ExecContext(context.Background(), sql, params)
+}
+
+func (tx *Tx) ExecContext(ctx context.Context, sql string, params map[string]interface{}) error {
+	_, _, err := tx.immudb.engine.Exec(sql, params, tx.tx)
+	if err != nil {
+		return err
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	return nil
+}
+
+func (tx *Tx) Query(sql string, params map[string]interface{}) (*ImmuDBRows, error) {
+	return tx.QueryContext(context.Background(), sql, params)
+}
+
+func (tx *Tx) QueryContext(ctx context.Context, sql string, params map[string]interface{}) (*ImmuDBRows, error) {
+	return tx.immudb.query(ctx, sql, params, tx.tx)
+}
+
+func (tx *Tx) Commit() error {
+	_, _, err := tx.immudb.engine.Exec("COMMIT;", nil, tx.tx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (tx *Tx) Rollback() error {
+	_, _, err := tx.immudb.engine.Exec("ROLLBACK;", nil, tx.tx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
