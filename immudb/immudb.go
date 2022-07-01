@@ -3,6 +3,8 @@ package immudb
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"strconv"
 	"sync"
 	"time"
 
@@ -72,6 +74,14 @@ func (im *ImmuDBRows) parseType(dst, src interface{}) error {
 		case *string:
 			*d = s
 			return nil
+		case *bool:
+			b, err := strconv.ParseBool(s)
+			if err != nil {
+				return fmt.Errorf("parse bool error: %s", err.Error())
+			}
+			*d = b
+		case *[]byte:
+			*d = []byte(s)
 		}
 	case time.Time:
 		switch d := dst.(type) {
@@ -84,6 +94,32 @@ func (im *ImmuDBRows) parseType(dst, src interface{}) error {
 		case *[]byte:
 			*d = []byte(s.Format(time.RFC3339Nano))
 			return nil
+		}
+	case bool:
+		switch d := dst.(type) {
+		case *bool:
+			*d = s
+			return nil
+		case *string:
+			*d = strconv.FormatBool(s)
+			return nil
+		}
+	case []byte:
+		switch d := dst.(type) {
+		case *[]byte:
+			*d = s
+			return nil
+		case *string:
+			*d = string(s)
+			return nil
+		}
+	case int64:
+		switch d := dst.(type) {
+		case *int64:
+			*d = s
+		case *string:
+			dv := reflect.ValueOf(d)
+			*d = strconv.FormatInt(dv.Int(), 10)
 		}
 	}
 
