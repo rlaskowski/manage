@@ -36,6 +36,10 @@ func (i *ImmuDBRows) Columns() ([]sql.ColDescriptor, error) {
 	return i.rowr.Columns()
 }
 
+func (i *ImmuDBRows) Close() error {
+	return i.rowr.Close()
+}
+
 func (i *ImmuDBRows) Scan(params ...interface{}) error {
 	if len(i.row.ValuesBySelector) != len(params) {
 		return fmt.Errorf("different number of columns in row, expected %d got %d", len(params), len(i.row.ValuesBySelector))
