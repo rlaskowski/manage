@@ -36,14 +36,15 @@ func RegisterService(runner ServiceRunner) error {
 		return errors.New("no service id")
 	}
 
-	srvRWMutex.Lock()
-	defer srvRWMutex.Unlock()
-
 	if _, err := GetService(service.ID); err == nil {
 		return fmt.Errorf("service %s has been already registered", service.ID)
 	}
 
+	srvRWMutex.Lock()
+
 	services = append(services, service)
+
+	srvRWMutex.Unlock()
 
 	return nil
 }
