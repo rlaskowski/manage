@@ -157,6 +157,25 @@ func (im *ImmuDB) BeginTx(ctx context.Context) (*Tx, error) {
 	}, nil
 }
 
+func (im *ImmuDB) Exec(sql string, params map[string]interface{}) (*sql.SQLTx, error) {
+	return im.ExecContext(context.Background(), sql, params)
+}
+
+func (im *ImmuDB) ExecContext(ctx context.Context, sql string, params map[string]interface{}) (*sql.SQLTx, error) {
+	tx, _, err := im.engine.Exec(sql, params, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	return tx, nil
+}
+
 // Selecting data by params
 func (im *ImmuDB) Query(sql string, params map[string]interface{}) (*ImmuDBRows, error) {
 	return im.QueryContext(context.Background(), sql, params)
