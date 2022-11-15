@@ -136,6 +136,8 @@ func (r *RabbitMQService) Publish(ctx context.Context, options PubOptions) error
 		return err
 	}
 
+	defer channel.Close()
+
 	if err := r.declareExchange(options.Exchange, channel); err != nil {
 		return err
 	}
@@ -187,8 +189,8 @@ func (r *RabbitMQService) Subscribe(ctx context.Context, options SubOptions) (<-
 		for c := range consume {
 
 			m := Message{
-				ContentType: "text/plain",
-				Body:        []byte(c.Body),
+				ContentType: c.ContentType,
+				Body:        c.Body,
 			}
 
 			msg <- m
